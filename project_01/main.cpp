@@ -1,3 +1,5 @@
+// Filipe Potrich Cechim (25100483) & Yasmin Ávila Nunes ()
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -82,6 +84,7 @@ bool isOpeningTag(string& tagText) {
     return true;
 }
 
+// Primeiro problema: validação de arquivo XML
 // Gets the text and returns the verification for the identified tags
 // TODO: REWRITE THIS FUNCTION AND DIVIDE IT INTO MORE CONCISE FUNCTIONS
 void verifyTag(string &texto) {
@@ -177,7 +180,10 @@ int main() {
     cout << "y      : " << c2.y << endl;
     cout << "matriz : " << c2.matriz << endl << endl;
 
-    // OWN CODE:
+    // Primeiro problema: validação de arquivo XML
+    // Verifies if tag is consistent
+    // If not, throws errors and does not continue with its execution
+    // That is the reason why it is declared as void
     verifyTag(texto);
 
     return 0;
