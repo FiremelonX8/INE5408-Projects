@@ -163,6 +163,7 @@ void destroyMatrix(char** matrix, size_t size_matrix0) {
     delete [] matrix;
 }
 
+// Converts the matrix from the string matrix from XML to char double pointer
 void convertMatrix(string matrixStr, char** matrixE, int size_matrix0) {
     int strIndex = 0;
     
@@ -178,47 +179,68 @@ void convertMatrix(string matrixStr, char** matrixE, int size_matrix0) {
     }
 }
 
+// void verifyNeighbourhood() {
+    
+// }
+
 // Verifies the correctness of the paths ->
 // NO negative coordinate;
 // NO trespassing the limits of the matrix.
-void verifyPaths(int* coord, size_t size_matrix0, structures::ArrayQueue<int *>* arraySaved, char** matrixR, char** matrixE) {
+void verifyPaths(int* coord, size_t size_matrix0, structures::ArrayQueue<int *>* arraySaved, char** matrixR, char** matrixE, int* area) {
+    // Initializing variables
     int* newCoord = new int[2];
     int x, y;
     bool lt, rt, up, dn, matrixRZero, matrixEOne;
 
+    // Defines [x, y] as copies of coord
     x = coord[0];
     y = coord[1];
+
+    // Boolean comparisons/attributions
     lt = (x - 1) >= 0;
     rt = (x + 1) < static_cast<int>(size_matrix0);
     up = (y - 1) >= 0;
     dn = (y + 1) < static_cast<int>(size_matrix0);
     matrixRZero = matrixR[x][y] == 0;
     matrixEOne = matrixE[x][y] == 1;
+
+    // Verifying the neighbourhood
+    // TODO: divide the following section into new functions
     if (lt && matrixRZero && matrixEOne) {
         newCoord[0] = x - 1;
         newCoord[1] = y;
         arraySaved->enqueue(newCoord);
+        matrixR[newCoord[0]][newCoord[1]] = 1;
+        *area++;
     }
     if (rt && matrixRZero && matrixEOne) {
         newCoord[0] = x + 1;
         newCoord[1] = y;
         arraySaved->enqueue(newCoord);
+        matrixR[newCoord[0]][newCoord[1]] = 1;
+        *area++;
     }
     if (up && matrixRZero && matrixEOne) {
         newCoord[0] = x;
         newCoord[1] = y - 1;
         arraySaved->enqueue(newCoord);
+        matrixR[newCoord[0]][newCoord[1]] = 1;
+        *area++;
     }
     if (dn && matrixRZero && matrixEOne) {
         newCoord[0] = x;
         newCoord[1] = y + 1;
         arraySaved->enqueue(newCoord);
+        matrixR[newCoord[0]][newCoord[1]] = 1;
+        *area++;
     }
 }
 
 // Calculates the area that the robot is responsible for cleaning
 // Segundo problema: determinação de área do espaço que o robô deve limpar
 int calculateArea(char** matrixR, char** matrixE, size_t size_matrix0, int* coordRobot) {
+    // Initialize area
+    int* area;
 
     // Declares arraySaved as a queue
     structures::ArrayQueue<int*>* arraySaved = new structures::ArrayQueue<int*>(size_matrix0);
@@ -229,16 +251,16 @@ int calculateArea(char** matrixR, char** matrixE, size_t size_matrix0, int* coor
     arraySaved->enqueue(coord);
     // Attribute '1' to [x, y] of R matrix
     matrixR[coord[0]][coord[1]] = '1';
+    *area++;
 
     while (!arraySaved->empty()) {
         coord = arraySaved->dequeue();
-        verifyPaths(coord, size_matrix0, arraySaved, matrixR, matrixE);
-        
+        verifyPaths(coord, size_matrix0, arraySaved, matrixR, matrixE, area);
     }
     
     // Destroys coord array
     delete [] coord;
-    return 0;
+    return *area;
 }
 
 /**********************
@@ -315,11 +337,11 @@ int main() {
     coordRobot[1] = (int) c1.y;
     area = calculateArea(matrixR, matrixE, size_matrix0, coordRobot);
 
+    // Prints the area that the robot is responsible for cleaning
+    cout << area << "m²" << endl;
+
     // Deallocate the matrix's pointers
     destroyMatrix(matrixR, size_matrix0);
-
-    // Prints the area that the robot is responsible for cleaning 
-    cout << area << endl;
 
     return 0;
 }
