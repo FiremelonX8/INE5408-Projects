@@ -5,6 +5,7 @@
 #include <string>
 #include <stdexcept>
 #include "array_stack.h"
+#include "array_queue.h"
 
 using namespace std;
 
@@ -88,44 +89,47 @@ bool isOpeningTag(string& tagText) {
 // Gets the text and returns the verification for the identified tags
 // TODO: REWRITE THIS FUNCTION AND DIVIDE IT INTO MORE CONCISE FUNCTIONS
 // The following function must return 
-int* verifyTag(string &texto) {
-    structures::ArrayStack<string> stackTags = structures::ArrayStack<string>(800);
+void verifyTag(string &texto) {
+    structures::ArrayStack<string> stackTags = structures::ArrayStack<string>();
     bool isOpTag;
     string tagText;
 
     // For restoring the correct "next iteration" in for loop after while loop
     int contTexto = 0;
     for (int i = 0; i < texto.length(); i++) {
-        // cout << texto[i] << endl;
+        // Reset tagText
         tagText = "";
         if (texto[i] == '<') {
             // While loop for storing the string that corresponds to the tag name
             contTexto = i;
+            // While the tag is not over
             while (texto[contTexto] != '>') {
                 tagText += texto[contTexto];
                 // Adds one unit to each character iterated
                 contTexto++;
             }
-            // if (texto[i] != '>') {
-            //     throw runtime_error("The tag is incorrect:");
-            // }
-            // i += contTexto;
         }
-        // cout << tagText << endl;
+
+        // Avoids the tagText to be null when executing the rest of the code
         if (tagText.size() > 0) {
-            // tagText.erase();
             tagText = tagText.substr(1);
-            cout << tagText << endl;
+
+            // cout << tagText << endl;
+            
+            // Verifies if the tagText represents 
             isOpTag = isOpeningTag(tagText);
             if (isOpTag) {
                 stackTags.push(tagText);
             } else {
-                // For erasing the '/' character in order to contain the real text 
-                // indicating the tag
+                // For erasing the '/' character in order to contain the real text indicating the tag
                 tagText = tagText.substr(1);
+                
+                // Imply runtime error if stack is empty and it is a closing tag
                 if (stackTags.empty()) {
                     throw runtime_error("The hierarchy is incorrect: " + tagText + " is closing without previous opening");
                 }
+                
+                // Pops top if tag is a closing one and the top is an opening equal to it
                 if (tagText == stackTags.top()) {
                     stackTags.pop();
                 } else {
@@ -134,46 +138,106 @@ int* verifyTag(string &texto) {
             }
         }
     }
-
+    
+    // The tag was not closed until the end of the file (needs to be optimized though)
     if (!stackTags.empty()) {
         throw runtime_error("The hierarchy is incorrect: a tag was not closed");
     }
 }
 
-
-// Converts a string matrix representation into a 2D integer array
-void convertMatrix(string matrixXML, int** matrix) {
-    size_t index = 0;
-    for (int i = 0; i < 200 && index < matrixXML.length(); i++) {
-        for (int j = 0; j < 200 && index < matrixXML.length(); j++) {
-            matrix[i][j] = matrixXML[index] - '0';
-            index++;
-        }
-    }
-}
-
-void resetMatrix(int** matrix, size_t size_matrix0) {
+// Set all matrix's elements to zero
+void resetMatrix(char** matrix, size_t size_matrix0) {
     for (int i = 0; i < size_matrix0; i++) {
-        matrix[i] = new int[size_matrix0];
+        matrix[i] = new char[size_matrix0];
         for (int j = 0; j < size_matrix0; j++) {
-            matrix[i][j] = 0;
+            matrix[i][j] = '0';
         }
     }
 }
 
-void destroyMatrix(int** matrix, size_t size_matrix0) {
+// Delete matrix pointers (deallocated dynamic structures)
+void destroyMatrix(char** matrix, size_t size_matrix0) {
     for (int i = 0; i < size_matrix0; i++) {
         delete [] matrix[i];
     }
     delete [] matrix;
 }
 
+void convertMatrix(string matrixStr, char** matrixE, int size_matrix0) {
+    int strIndex = 0;
+    
+    for (int i = 0; i < size_matrix0; ++i) {
+        for (int j = 0; j < size_matrix0; ++j) {
+            // Check to ensure we don't go out of bounds of the string
+            if (strIndex < matrixStr.length()) {
+                matrixE[i][j] = matrixStr[strIndex++];
+            } else {
+                matrixE[i][j] = '\0'; // Fill with null if string is too short
+            }
+        }
+    }
+}
+
+// Verifies the correctness of the paths ->
+// NO negative coordinate;
+// NO trespassing the limits of the matrix.
+void verifyPaths(int* coord, size_t size_matrix0, structures::ArrayQueue<int *>* arraySaved, char** matrixR, char** matrixE) {
+    int* newCoord = new int[2];
+    int x, y;
+    bool lt, rt, up, dn, matrixRZero, matrixEOne;
+
+    x = coord[0];
+    y = coord[1];
+    lt = (x - 1) >= 0;
+    rt = (x + 1) < static_cast<int>(size_matrix0);
+    up = (y - 1) >= 0;
+    dn = (y + 1) < static_cast<int>(size_matrix0);
+    matrixRZero = matrixR[x][y] == 0;
+    matrixEOne = matrixE[x][y] == 1;
+    if (lt && matrixRZero && matrixEOne) {
+        newCoord[0] = x - 1;
+        newCoord[1] = y;
+        arraySaved->enqueue(newCoord);
+    }
+    if (rt && matrixRZero && matrixEOne) {
+        newCoord[0] = x + 1;
+        newCoord[1] = y;
+        arraySaved->enqueue(newCoord);
+    }
+    if (up && matrixRZero && matrixEOne) {
+        newCoord[0] = x;
+        newCoord[1] = y - 1;
+        arraySaved->enqueue(newCoord);
+    }
+    if (dn && matrixRZero && matrixEOne) {
+        newCoord[0] = x;
+        newCoord[1] = y + 1;
+        arraySaved->enqueue(newCoord);
+    }
+}
+
 // Calculates the area that the robot is responsible for cleaning
 // Segundo problema: determinação de área do espaço que o robô deve limpar
-int calculateArea(int** matriz) {
+int calculateArea(char** matrixR, char** matrixE, size_t size_matrix0, int* coordRobot) {
 
+    // Declares arraySaved as a queue
+    structures::ArrayQueue<int*>* arraySaved = new structures::ArrayQueue<int*>(size_matrix0);
+    // Declares coord as a new int array with 2 elements
+    int* coord = new int[2];
+    // First element: coordinates of the robot
+    coord = coordRobot;
+    arraySaved->enqueue(coord);
+    // Attribute '1' to [x, y] of R matrix
+    matrixR[coord[0]][coord[1]] = '1';
+
+    while (!arraySaved->empty()) {
+        coord = arraySaved->dequeue();
+        verifyPaths(coord, size_matrix0, arraySaved, matrixR, matrixE);
+        
+    }
     
-
+    // Destroys coord array
+    delete [] coord;
     return 0;
 }
 
@@ -229,9 +293,11 @@ int main() {
     // Initializing variables
     int area;
     const size_t size_matrix0 = c1.matriz.length();
-    int** matrix;
-    matrix = new int*[size_matrix0];
-
+    char** matrixR;
+    char** matrixE;
+    matrixR = new char*[size_matrix0];
+    matrixE = new char*[size_matrix0];
+    
     // Primeiro problema: validação de arquivo XML
     // Verifies if tag is consistent
     // If not, throws errors and does not continue with its execution
@@ -239,13 +305,18 @@ int main() {
     verifyTag(texto);
     
     // Initialize matrix to zero
-    resetMatrix(matrix, size_matrix0);
+    resetMatrix(matrixR, size_matrix0);
     
-    // convertMatrix(c1.matriz, matrix);
-    area = calculateArea(matrix);
+    // Converts the matrix in string to a matrix in chars an allocate a pointer
+    convertMatrix(c1.matriz, matrixE, size_matrix0);
+
+    int* coordRobot = new int[2];
+    coordRobot[0] = (int) c1.x;
+    coordRobot[1] = (int) c1.y;
+    area = calculateArea(matrixR, matrixE, size_matrix0, coordRobot);
 
     // Deallocate the matrix's pointers
-    destroyMatrix(matrix, size_matrix0);
+    destroyMatrix(matrixR, size_matrix0);
 
     // Prints the area that the robot is responsible for cleaning 
     cout << area << endl;
