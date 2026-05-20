@@ -94,35 +94,44 @@ void verifyTag(string &texto) {
 
     // For restoring the correct "next iteration" in for loop after while loop
     int contTexto = 0;
-    for (int i = 0; i < texto.length(); i++) { 
+    for (int i = 0; i < texto.length(); i++) {
+        // cout << texto[i] << endl;
+        tagText = "";
         if (texto[i] == '<') {
             // While loop for storing the string that corresponds to the tag name
-            while (texto[i] != '>') {
-                tagText += texto[i];
+            contTexto = i;
+            while (texto[contTexto] != '>') {
+                tagText += texto[contTexto];
                 // Adds one unit to each character iterated
                 contTexto++;
             }
-            if (texto[i] != '>') {
-                throw runtime_error("The tag is incorrect:");
-            }
+            // if (texto[i] != '>') {
+            //     throw runtime_error("The tag is incorrect:");
+            // }
+            // i += contTexto;
         }
-        isOpTag = isOpeningTag(tagText);
-        if (isOpTag) {
-            stackTags.push(tagText);
-        } else {
-            // For erasing the '/' character in order to contain the real text 
-            // indicating the tag
-            tagText = tagText.erase(0);
-            if (stackTags.empty()) {
-                throw runtime_error("The hierarchy is incorrect: " + tagText + " is closing without previous opening");
-            }
-            if (tagText == stackTags.top()) {
-                stackTags.pop();
+        // cout << tagText << endl;
+        if (tagText.size() > 0) {
+            // tagText.erase();
+            tagText = tagText.substr(1);
+            cout << tagText << endl;
+            isOpTag = isOpeningTag(tagText);
+            if (isOpTag) {
+                stackTags.push(tagText);
             } else {
-                throw runtime_error("The hierarchy is incorrect: " + stackTags.top() + " is different from " + tagText);
+                // For erasing the '/' character in order to contain the real text 
+                // indicating the tag
+                tagText = tagText.substr(1);
+                if (stackTags.empty()) {
+                    throw runtime_error("The hierarchy is incorrect: " + tagText + " is closing without previous opening");
+                }
+                if (tagText == stackTags.top()) {
+                    stackTags.pop();
+                } else {
+                    throw runtime_error("The hierarchy is incorrect: " + stackTags.top() + " is different from " + tagText);
+                }
             }
         }
-        i += contTexto;
     }
 
     if (!stackTags.empty()) {
@@ -130,12 +139,16 @@ void verifyTag(string &texto) {
     }
 }
 
+int calculateArea() {
+    return 0;
+}
 
 /**********************
     FUNÇÃO PRINCIPAL
 ***********************/
 int main() {
 
+    cout << "Iniciou o programa" << endl;
     string filename;
 
     std::cin >> filename;  // nome do arquivo de entrada 
@@ -149,12 +162,16 @@ int main() {
         throw runtime_error("Erro no arquivo XML");
     }
 
+    cout << "Abriu arquivo" << endl;
+
     // Leitura do XML completo para 'texto'
     string texto;
     char character;
     while (filexml.get(character)) {
         texto += character;
     }
+
+    cout << "guloso texto" << endl;
 
 
     // ----------------------------
