@@ -87,7 +87,8 @@ bool isOpeningTag(string& tagText) {
 // Primeiro problema: validação de arquivo XML
 // Gets the text and returns the verification for the identified tags
 // TODO: REWRITE THIS FUNCTION AND DIVIDE IT INTO MORE CONCISE FUNCTIONS
-void verifyTag(string &texto) {
+// The following function must return 
+int* verifyTag(string &texto) {
     structures::ArrayStack<string> stackTags = structures::ArrayStack<string>(800);
     bool isOpTag;
     string tagText;
@@ -139,7 +140,40 @@ void verifyTag(string &texto) {
     }
 }
 
-int calculateArea() {
+
+// Converts a string matrix representation into a 2D integer array
+void convertMatrix(string matrixXML, int** matrix) {
+    size_t index = 0;
+    for (int i = 0; i < 200 && index < matrixXML.length(); i++) {
+        for (int j = 0; j < 200 && index < matrixXML.length(); j++) {
+            matrix[i][j] = matrixXML[index] - '0';
+            index++;
+        }
+    }
+}
+
+void resetMatrix(int** matrix, size_t size_matrix0) {
+    for (int i = 0; i < size_matrix0; i++) {
+        matrix[i] = new int[size_matrix0];
+        for (int j = 0; j < size_matrix0; j++) {
+            matrix[i][j] = 0;
+        }
+    }
+}
+
+void destroyMatrix(int** matrix, size_t size_matrix0) {
+    for (int i = 0; i < size_matrix0; i++) {
+        delete [] matrix[i];
+    }
+    delete [] matrix;
+}
+
+// Calculates the area that the robot is responsible for cleaning
+// Segundo problema: determinação de área do espaço que o robô deve limpar
+int calculateArea(int** matriz) {
+
+    
+
     return 0;
 }
 
@@ -162,17 +196,12 @@ int main() {
         throw runtime_error("Erro no arquivo XML");
     }
 
-    cout << "Abriu arquivo" << endl;
-
     // Leitura do XML completo para 'texto'
     string texto;
     char character;
     while (filexml.get(character)) {
         texto += character;
     }
-
-    cout << "guloso texto" << endl;
-
 
     // ----------------------------
     // Sugestão de código para a PARTE 2 do projeto
@@ -197,11 +226,29 @@ int main() {
     cout << "y      : " << c2.y << endl;
     cout << "matriz : " << c2.matriz << endl << endl;
 
+    // Initializing variables
+    int area;
+    const size_t size_matrix0 = c1.matriz.length();
+    int** matrix;
+    matrix = new int*[size_matrix0];
+
     // Primeiro problema: validação de arquivo XML
     // Verifies if tag is consistent
     // If not, throws errors and does not continue with its execution
     // That is the reason why it is declared as void
     verifyTag(texto);
+    
+    // Initialize matrix to zero
+    resetMatrix(matrix, size_matrix0);
+    
+    // convertMatrix(c1.matriz, matrix);
+    area = calculateArea(matrix);
+
+    // Deallocate the matrix's pointers
+    destroyMatrix(matrix, size_matrix0);
+
+    // Prints the area that the robot is responsible for cleaning 
+    cout << area << endl;
 
     return 0;
 }
