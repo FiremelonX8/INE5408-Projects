@@ -9,6 +9,11 @@
 
 using namespace std;
 
+struct Point {
+    int x;
+    int y;
+};
+
 
 class Cenario {
   public:
@@ -146,35 +151,29 @@ void verifyTag(string &texto) {
 }
 
 // Set all matrix's elements to zero
-void resetMatrix(char** matrix, size_t size_matrix0) {
-    for (int i = 0; i < size_matrix0; i++) {
-        matrix[i] = new char[size_matrix0];
-        for (int j = 0; j < size_matrix0; j++) {
+void resetMatrix(char** matrix, size_t altura, size_t largura) {
+    for (size_t i = 0; i < altura; i++) {
+        matrix[i] = new char[largura];
+        for (size_t j = 0; j < largura; j++) {
             matrix[i][j] = '0';
         }
     }
 }
 
 // Delete matrix pointers (deallocated dynamic structures)
-void destroyMatrix(char** matrix, size_t size_matrix0) {
-    for (int i = 0; i < size_matrix0; i++) {
+void destroyMatrix(char** matrix, size_t altura, size_t largura) {
+    for (int i = 0; i < altura; i++) {
         delete [] matrix[i];
     }
     delete [] matrix;
 }
 
 // Converts the matrix from the string matrix from XML to char double pointer
-void convertMatrix(string matrixStr, char** matrixE, int size_matrix0) {
-    int strIndex = 0;
-    
-    for (int i = 0; i < size_matrix0; ++i) {
-        for (int j = 0; j < size_matrix0; ++j) {
-            // Check to ensure we don't go out of bounds of the string
-            if (strIndex < matrixStr.length()) {
-                matrixE[i][j] = matrixStr[strIndex++];
-            } else {
-                matrixE[i][j] = '\0'; // Fill with null if string is too short
-            }
+void convertMatrix(string matrixStr, char** matrixE, size_t altura, size_t largura) {
+    size_t strIndex = 0;
+    for (size_t i = 0; i < altura; ++i) {
+        for (size_t j = 0; j < largura; ++j) {
+            matrixE[i][j] = matrixStr[strIndex++];
         }
     }
 }
@@ -186,86 +185,48 @@ void convertMatrix(string matrixStr, char** matrixE, int size_matrix0) {
 // Verifies the correctness of the paths ->
 // NO negative coordinate;
 // NO trespassing the limits of the matrix.
-void verifyPaths(int* coord, size_t size_matrix0, structures::ArrayQueue<int *>* arraySaved, char** matrixR, char** matrixE, int* area) {
-    // Initializing variables
-    int* newCoord = new int[2];
-    int x, y;
-    bool lt, rt, up, dn, matrixRZero, matrixEOne;
+void verifyPaths(Point p, size_t altura, size_t largura, structures::ArrayQueue<Point>& queue, char** matrixR, char** matrixE, int& area) {
+    int dx[] = {-1, 1, 0, 0};
+    int dy[] = {0, 0, -1, 1};
 
-    // Defines [x, y] as copies of coord
-    x = coord[0];
-    y = coord[1];
+    for (int i = 0; i < 4; i++) {
+        int nx = p.x + dx[i];
+        int ny = p.y + dy[i];
 
-    // Boolean comparisons/attributions
-    lt = (x - 1) >= 0;
-    rt = (x + 1) < static_cast<int>(size_matrix0);
-    up = (y - 1) >= 0;
-    dn = (y + 1) < static_cast<int>(size_matrix0);
-    matrixRZero = matrixR[x][y] == 0;
-    matrixEOne = matrixE[x][y] == 1;
-
-    // Verifying the neighbourhood
-    // TODO: divide the following section into new functions
-    if (lt && matrixRZero && matrixEOne) {
-        newCoord[0] = x - 1;
-        newCoord[1] = y;
-        arraySaved->enqueue(newCoord);
-        matrixR[newCoord[0]][newCoord[1]] = 1;
-        *area++;
-    }
-    if (rt && matrixRZero && matrixEOne) {
-        newCoord[0] = x + 1;
-        newCoord[1] = y;
-        arraySaved->enqueue(newCoord);
-        matrixR[newCoord[0]][newCoord[1]] = 1;
-        *area++;
-    }
-    if (up && matrixRZero && matrixEOne) {
-        newCoord[0] = x;
-        newCoord[1] = y - 1;
-        arraySaved->enqueue(newCoord);
-        matrixR[newCoord[0]][newCoord[1]] = 1;
-        *area++;
-    }
-    if (dn && matrixRZero && matrixEOne) {
-        newCoord[0] = x;
-        newCoord[1] = y + 1;
-        arraySaved->enqueue(newCoord);
-        matrixR[newCoord[0]][newCoord[1]] = 1;
-        *area++;
+        // Ensure we check against altura and largura specifically
+        if (nx >= 0 && nx < static_cast<int>(altura) && 
+            ny >= 0 && ny < static_cast<int>(largura) &&
+            matrixR[nx][ny] == '0' && matrixE[nx][ny] == '1') {
+            
+            matrixR[nx][ny] = '1'; 
+            area++;
+            queue.enqueue({nx, ny});
+        }
     }
 }
 
 // Calculates the area that the robot is responsible for cleaning
 // Segundo problema: determinação de área do espaço que o robô deve limpar
-int calculateArea(char** matrixR, char** matrixE, size_t size_matrix0, int* coordRobot) {
-    // Initialize area
-    int* area;
-
-    // Declares arraySaved as a queue
-    structures::ArrayQueue<int*>* arraySaved = new structures::ArrayQueue<int*>(size_matrix0);
-    // Declares coord as a new int array with 2 elements
-    int* coord = new int[2];
-    // First element: coordinates of the robot
-    coord = coordRobot;
-    arraySaved->enqueue(coord);
-    // Attribute '1' to [x, y] of R matrix
-    matrixR[coord[0]][coord[1]] = '1';
-    *area++;
-
-    while (!arraySaved->empty()) {
-        coord = arraySaved->dequeue();
-        verifyPaths(coord, size_matrix0, arraySaved, matrixR, matrixE, area);
-    }
+int calculateArea(char** matrixR, char** matrixE, size_t altura, size_t largura, Point start) {
+    int area = 1;
+    // Use a safe capacity for the queue
+    structures::ArrayQueue<Point> queue(altura * largura);
     
-    // Destroys coord array
-    delete [] coord;
-    return *area;
+    matrixR[start.x][start.y] = '1';
+    queue.enqueue(start);
+
+    while (!queue.empty()) {
+        Point current = queue.dequeue();
+        // Update verifyPaths to accept altura/largura instead of a single size
+        verifyPaths(current, altura, largura, queue, matrixR, matrixE, area);
+    }
+    return area;
 }
 
 /**********************
     FUNÇÃO PRINCIPAL
 ***********************/
+
 int main() {
 
     cout << "Iniciou o programa" << endl;
@@ -289,6 +250,12 @@ int main() {
         texto += character;
     }
 
+    //
+    //
+    //
+    // END OF STATIC SECTION
+    //
+    //
     // ----------------------------
     // Sugestão de código para a PARTE 2 do projeto
 
@@ -312,13 +279,24 @@ int main() {
     cout << "y      : " << c2.y << endl;
     cout << "matriz : " << c2.matriz << endl << endl;
 
-    // Initializing variables
+    // OUR CODE / Initializing variables
+    //
+    //
+    //
+    //
+    //
+    //
     int area;
+    Point robotStart = {(int)c1.x, (int)c1.y};
+
     const size_t size_matrix0 = c1.matriz.length();
     char** matrixR;
     char** matrixE;
-    matrixR = new char*[size_matrix0];
-    matrixE = new char*[size_matrix0];
+    matrixR = new char*[c1.altura];
+    matrixE = new char*[c1.altura];
+    for (size_t i = 0; i < c1.altura; ++i) {
+        matrixE[i] = new char[c1.largura];
+    }
     
     // Primeiro problema: validação de arquivo XML
     // Verifies if tag is consistent
@@ -327,21 +305,20 @@ int main() {
     verifyTag(texto);
     
     // Initialize matrix to zero
-    resetMatrix(matrixR, size_matrix0);
+    resetMatrix(matrixR, c1.altura, c1.largura);
     
     // Converts the matrix in string to a matrix in chars an allocate a pointer
-    convertMatrix(c1.matriz, matrixE, size_matrix0);
+    convertMatrix(c1.matriz, matrixE, c1.altura, c1.largura);
 
-    int* coordRobot = new int[2];
-    coordRobot[0] = (int) c1.x;
-    coordRobot[1] = (int) c1.y;
-    area = calculateArea(matrixR, matrixE, size_matrix0, coordRobot);
+    // Calculates area based on the input matrix
+    area = calculateArea(matrixR, matrixE, c1.altura, c1.largura, robotStart);
 
     // Prints the area that the robot is responsible for cleaning
     cout << area << "m²" << endl;
 
     // Deallocate the matrix's pointers
-    destroyMatrix(matrixR, size_matrix0);
+    destroyMatrix(matrixR, c1.altura, c1.largura);
+    destroyMatrix(matrixE, c1.altura, c1.largura);
 
     return 0;
 }

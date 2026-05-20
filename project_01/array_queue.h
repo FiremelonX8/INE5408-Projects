@@ -87,7 +87,7 @@ void structures::ArrayQueue<T>::enqueue(const T& data) {
 //! metodo desenfileirar
 template<typename T>
 T structures::ArrayQueue<T>::dequeue() {
-    int aux;
+    T aux;
     if (empty()) {
         throw std::out_of_range("fila vazia");
     }
