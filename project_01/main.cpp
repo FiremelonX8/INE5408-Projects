@@ -1,12 +1,18 @@
-// Filipe Potrich Cechim (25100483) & Yasmin Ávila Nunes ()
+// Filipe Potrich Cechim (25100483) & Yasmin Ávila Nunes (24100515)
 
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <stdexcept>
 #include "array_stack.h"
+#include "array_queue.h"
 
 using namespace std;
+
+struct Point {
+    int x;
+    int y;
+};
 
 
 class Cenario {
@@ -87,104 +93,248 @@ bool isOpeningTag(string& tagText) {
 // Primeiro problema: validação de arquivo XML
 // Gets the text and returns the verification for the identified tags
 // TODO: REWRITE THIS FUNCTION AND DIVIDE IT INTO MORE CONCISE FUNCTIONS
+// The following function must return 
 void verifyTag(string &texto) {
-    structures::ArrayStack<string> stackTags = structures::ArrayStack<string>(800);
+    structures::ArrayStack<string> stackTags = structures::ArrayStack<string>();
     bool isOpTag;
     string tagText;
 
     // For restoring the correct "next iteration" in for loop after while loop
     int contTexto = 0;
-    for (int i = 0; i < texto.length(); i++) { 
+    for (int i = 0; i < texto.length(); i++) {
+        // Reset tagText
+        tagText = "";
         if (texto[i] == '<') {
             // While loop for storing the string that corresponds to the tag name
-            while (texto[i] != '>') {
-                tagText += texto[i];
+            contTexto = i;
+            // While the tag is not over
+            while (texto[contTexto] != '>') {
+                tagText += texto[contTexto];
                 // Adds one unit to each character iterated
                 contTexto++;
             }
-            if (texto[i] != '>') {
-                throw runtime_error("The tag is incorrect:");
-            }
         }
-        isOpTag = isOpeningTag(tagText);
-        if (isOpTag) {
-            stackTags.push(tagText);
-        } else {
-            // For erasing the '/' character in order to contain the real text 
-            // indicating the tag
-            tagText = tagText.erase(0);
-            if (stackTags.empty()) {
-                throw runtime_error("The hierarchy is incorrect: " + tagText + " is closing without previous opening");
-            }
-            if (tagText == stackTags.top()) {
-                stackTags.pop();
-            } else {
-                throw runtime_error("The hierarchy is incorrect: " + stackTags.top() + " is different from " + tagText);
-            }
-        }
-        i += contTexto;
-    }
 
+        // Avoids the tagText to be null when executing the rest of the code
+        if (tagText.size() > 0) {
+            tagText = tagText.substr(1);
+
+            // cout << tagText << endl;
+            
+            // Verifies if the tagText represents 
+            isOpTag = isOpeningTag(tagText);
+            if (isOpTag) {
+                stackTags.push(tagText);
+            } else {
+                // For erasing the '/' character in order to contain the real text indicating the tag
+                tagText = tagText.substr(1);
+                
+                // Imply runtime error if stack is empty and it is a closing tag
+                if (stackTags.empty()) {
+                    cout << "erro" << endl;
+                    exit(0);
+                }
+                
+                // Pops top if tag is a closing one and the top is an opening equal to it
+                if (tagText == stackTags.top()) {
+                    stackTags.pop();
+                } else {
+                    cout << "erro" << endl;
+                    exit(0);
+                }
+            }
+        }
+    }
+    
+    // The tag was not closed until the end of the file (needs to be optimized though)
     if (!stackTags.empty()) {
-        throw runtime_error("The hierarchy is incorrect: a tag was not closed");
+        cout << "erro" << endl;
+        exit(0);
     }
 }
 
+// Set all matrix's elements to zero
+void resetMatrix(char** matrix, size_t altura, size_t largura) {
+    for (size_t i = 0; i < altura; i++) {
+        matrix[i] = new char[largura];
+        for (size_t j = 0; j < largura; j++) {
+            matrix[i][j] = '0';
+        }
+    }
+}
+
+// Delete matrix pointers (deallocated dynamic structures)
+void destroyMatrix(char** matrix, size_t altura, size_t largura) {
+    for (int i = 0; i < altura; i++) {
+        delete [] matrix[i];
+    }
+    delete [] matrix;
+}
+
+// Converts the matrix from the string matrix from XML to char double pointer
+void convertMatrix(string matrixStr, char** matrixE, size_t altura, size_t largura) {
+    size_t strIndex = 0;
+    for (size_t i = 0; i < altura; ++i) {
+        for (size_t j = 0; j < largura; ++j) {
+            matrixE[i][j] = matrixStr[strIndex++];
+        }
+    }
+}
+
+// void verifyNeighbourhood() {
+    
+// }
+
+// Verifies the correctness of the paths ->
+// NO negative coordinate;
+// NO trespassing the limits of the matrix.
+void verifyPaths(Point p, size_t altura, size_t largura, structures::ArrayQueue<Point>& queue, char** matrixR, char** matrixE, int& area) {
+    int dx[] = {-1, 1, 0, 0};
+    int dy[] = {0, 0, -1, 1};
+
+    for (int i = 0; i < 4; i++) {
+        int nx = p.x + dx[i];
+        int ny = p.y + dy[i];
+
+        // Ensure we check against altura and largura specifically
+        if (nx >= 0 && nx < static_cast<int>(altura) && 
+            ny >= 0 && ny < static_cast<int>(largura) &&
+            matrixR[nx][ny] == '0' && matrixE[nx][ny] == '1') {
+            
+            matrixR[nx][ny] = '1'; 
+            area++;
+            queue.enqueue({nx, ny});
+        }
+    }
+}
+
+// Calculates the area that the robot is responsible for cleaning
+// Segundo problema: determinação de área do espaço que o robô deve limpar
+int calculateArea(char** matrixR, char** matrixE, size_t altura, size_t largura, Point start) {
+    
+    if (matrixE[start.x][start.y] == '0') {
+        return 0;
+    }
+    
+    int area = 1;
+    // Use a safe capacity for the queue
+    structures::ArrayQueue<Point> queue(altura * largura);
+    
+    matrixR[start.x][start.y] = '1';
+    queue.enqueue(start);
+
+    while (!queue.empty()) {
+        Point current = queue.dequeue();
+        // Update verifyPaths to accept altura/largura instead of a single size
+        verifyPaths(current, altura, largura, queue, matrixR, matrixE, area);
+    }
+    return area;
+}
 
 /**********************
     FUNÇÃO PRINCIPAL
 ***********************/
+
 int main() {
 
     string filename;
 
-    std::cin >> filename;  // nome do arquivo de entrada 
-                           // (no 'executar': escrever pelo teclado;
-                           //  no 'avaliar' : nome é passado pelos testes)
+    std::cin >> filename;  // XML input file name
 
-    // Abertura do arquivo
+    // Opening XML file
     ifstream filexml(filename);
+
     if (!filexml.is_open()) {
         cerr << "Erro ao abrir o arquivo " << filename << endl;
         throw runtime_error("Erro no arquivo XML");
     }
 
-    // Leitura do XML completo para 'texto'
+    // Reads the entire XML file into the string "texto"
     string texto;
     char character;
+
     while (filexml.get(character)) {
         texto += character;
     }
 
-
-    // ----------------------------
-    // Sugestão de código para a PARTE 2 do projeto
-
-    // Exemplo de leitura do primeiro cenário - REMOVER ESTAS SAÍDAS DE TELA NA VERSÃO FINAL
-    Cenario c1(texto, 0);
-
-    cout << "nome   : " << c1.nome << endl;
-    cout << "altura : " << c1.altura << endl;
-    cout << "largura: " << c1.largura << endl;
-    cout << "x      : " << c1.x << endl;
-    cout << "y      : " << c1.y << endl;
-    cout << "matriz : " << c1.matriz << endl << endl;
-
-    // Exemplo de leitura do segundo cenário (a partir do índice final de c1) - REMOVER ESTAS SAÍDAS DE TELA NA VERSÃO FINAL
-    Cenario c2(texto, c1.indice_final);
-
-    cout << "nome   : " << c2.nome << endl;
-    cout << "altura : " << c2.altura << endl;
-    cout << "largura: " << c2.largura << endl;
-    cout << "x      : " << c2.x << endl;
-    cout << "y      : " << c2.y << endl;
-    cout << "matriz : " << c2.matriz << endl << endl;
-
-    // Primeiro problema: validação de arquivo XML
-    // Verifies if tag is consistent
-    // If not, throws errors and does not continue with its execution
-    // That is the reason why it is declared as void
+    // Primeiro problema:
+    // Verifies if XML tags are correctly nested
     verifyTag(texto);
+
+    // Variable responsible for controlling
+    // the reading position inside the XML
+    size_t pos = 0;
+
+    // Iterates through all scenarios in the XML
+    while (texto.find("<cenario>", pos) != string::npos) {
+
+        // Creates current scenario
+        Cenario currentScenario(texto, pos);
+
+        // Updates the reading position
+        pos = currentScenario.indice_final;
+
+        // Stores robot initial position
+        Point robotStart = {
+            (int)currentScenario.x,
+            (int)currentScenario.y
+        };
+
+        // Dynamic allocation of matrices
+        char** matrixR;
+        char** matrixE;
+
+        matrixR = new char*[currentScenario.altura];
+        matrixE = new char*[currentScenario.altura];
+
+        // Allocates rows for matrixE
+        for (size_t i = 0; i < currentScenario.altura; ++i) {
+            matrixE[i] = new char[currentScenario.largura];
+        }
+
+        // Initializes reconstruction matrix with zeros
+        resetMatrix(
+            matrixR,
+            currentScenario.altura,
+            currentScenario.largura
+        );
+
+        // Converts matrix string into bidimensional matrix
+        convertMatrix(
+            currentScenario.matriz,
+            matrixE,
+            currentScenario.altura,
+            currentScenario.largura
+        );
+
+        // Calculates connected component area
+        int area = calculateArea(
+            matrixR,
+            matrixE,
+            currentScenario.altura,
+            currentScenario.largura,
+            robotStart
+        );
+
+        // Prints robot cleaning area
+        cout << currentScenario.nome
+            << " "
+            << area
+            << endl;
+
+        // Deallocates matrices
+        destroyMatrix(
+            matrixR,
+            currentScenario.altura,
+            currentScenario.largura
+        );
+
+        destroyMatrix(
+            matrixE,
+            currentScenario.altura,
+            currentScenario.largura
+        );
+    }
 
     return 0;
 }
