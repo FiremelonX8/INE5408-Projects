@@ -1,4 +1,4 @@
-// Copyright [ano] <COLOQUE SEU NOME AQUI...>
+// Copyright [2026] <YASMIN AVILA NUNES>
 #ifndef STRUCTURES_ARRAY_QUEUE_H
 #define STRUCTURES_ARRAY_QUEUE_H
 
@@ -78,45 +78,49 @@ template<typename T>
 void structures::ArrayQueue<T>::enqueue(const T& data) {
     if (full()) {
         throw std::out_of_range("fila cheia");
+    } else {
+        end_ = (end_ + 1) % max_size_;
+        contents[end_] = data;
+        size_++;
     }
-    end_ = (end_ + 1) % max_size_;
-    contents[end_] = data;
-    size_++;
 }
 
 //! metodo desenfileirar
 template<typename T>
 T structures::ArrayQueue<T>::dequeue() {
-    T aux;
-    if (empty()) {
+     if (empty()) {
         throw std::out_of_range("fila vazia");
+    } else {
+        T aux = contents[begin_];
+        begin_ = (begin_ + 1) % max_size_;
+        size_--;
+        return aux;
     }
-    aux = contents[begin_];
-    begin_ = (begin_ + 1) % max_size_;
-    size_--;
-    return aux;
 }
 
 //! metodo retorna o ultimo
 template<typename T>
 T& structures::ArrayQueue<T>::back() {
-    if (empty())
+    if (!empty()) {
+        return contents[end_];
+    } else {
         throw std::out_of_range("fila vazia");
-    return contents[end_];
+    }
 }
 
 //! metodo limpa a fila
 template<typename T>
 void structures::ArrayQueue<T>::clear() {
-    begin_ = 0;
-    end_ = -1;
-    size_ = 0;
+    if (!empty()) {
+        begin_ = 0;
+        end_ = -1;
+        size_ = 0;
+    }
 }
 
 //! metodo retorna tamanho atual
 template<typename T>
 std::size_t structures::ArrayQueue<T>::size() {
-    // return (end_ - begin_ + 1);
     return size_;
 }
 
@@ -129,11 +133,11 @@ std::size_t structures::ArrayQueue<T>::max_size() {
 //! metodo verifica se vazio
 template<typename T>
 bool structures::ArrayQueue<T>::empty() {
-    return (size() == 0);
+    return size_ == 0;
 }
 
 //! metodo verifica se esta cheio
 template<typename T>
 bool structures::ArrayQueue<T>::full() {
-    return ((end_ - begin_) == static_cast<int>(max_size_ - 1));
+    return size_ == max_size_;
 }
