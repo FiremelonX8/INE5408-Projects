@@ -237,6 +237,7 @@ int calculateArea(char** matrixR, char** matrixE, size_t altura, size_t largura,
 
 int main() {
 
+    cout << "Iniciou o programa" << endl;
     string filename;
 
     std::cin >> filename;  // XML input file name
