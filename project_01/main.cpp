@@ -1,4 +1,4 @@
-// Filipe Potrich Cechim (25100483) & Yasmin Ávila Nunes ()
+// Filipe Potrich Cechim (25100483) & Yasmin Ávila Nunes (24100515)
 
 #include <iostream>
 #include <fstream>
@@ -131,14 +131,16 @@ void verifyTag(string &texto) {
                 
                 // Imply runtime error if stack is empty and it is a closing tag
                 if (stackTags.empty()) {
-                    throw runtime_error("The hierarchy is incorrect: " + tagText + " is closing without previous opening");
+                    cout << "erro" << endl;
+                    exit(0);
                 }
                 
                 // Pops top if tag is a closing one and the top is an opening equal to it
                 if (tagText == stackTags.top()) {
                     stackTags.pop();
                 } else {
-                    throw runtime_error("The hierarchy is incorrect: " + stackTags.top() + " is different from " + tagText);
+                    cout << "erro" << endl;
+                    exit(0);
                 }
             }
         }
@@ -146,7 +148,8 @@ void verifyTag(string &texto) {
     
     // The tag was not closed until the end of the file (needs to be optimized though)
     if (!stackTags.empty()) {
-        throw runtime_error("The hierarchy is incorrect: a tag was not closed");
+        cout << "erro" << endl;
+        exit(0);
     }
 }
 
@@ -208,6 +211,11 @@ void verifyPaths(Point p, size_t altura, size_t largura, structures::ArrayQueue<
 // Calculates the area that the robot is responsible for cleaning
 // Segundo problema: determinação de área do espaço que o robô deve limpar
 int calculateArea(char** matrixR, char** matrixE, size_t altura, size_t largura, Point start) {
+    
+    if (matrixE[start.x][start.y] == '0') {
+        return 0;
+    }
+    
     int area = 1;
     // Use a safe capacity for the queue
     structures::ArrayQueue<Point> queue(altura * largura);
@@ -232,93 +240,102 @@ int main() {
     cout << "Iniciou o programa" << endl;
     string filename;
 
-    std::cin >> filename;  // nome do arquivo de entrada 
-                           // (no 'executar': escrever pelo teclado;
-                           //  no 'avaliar' : nome é passado pelos testes)
+    std::cin >> filename;  // XML input file name
 
-    // Abertura do arquivo
+    // Opening XML file
     ifstream filexml(filename);
+
     if (!filexml.is_open()) {
         cerr << "Erro ao abrir o arquivo " << filename << endl;
         throw runtime_error("Erro no arquivo XML");
     }
 
-    // Leitura do XML completo para 'texto'
+    // Reads the entire XML file into the string "texto"
     string texto;
     char character;
+
     while (filexml.get(character)) {
         texto += character;
     }
 
-    //
-    //
-    //
-    // END OF STATIC SECTION
-    //
-    //
-    // ----------------------------
-    // Sugestão de código para a PARTE 2 do projeto
-
-    // Exemplo de leitura do primeiro cenário - REMOVER ESTAS SAÍDAS DE TELA NA VERSÃO FINAL
-    Cenario c1(texto, 0);
-
-    cout << "nome   : " << c1.nome << endl;
-    cout << "altura : " << c1.altura << endl;
-    cout << "largura: " << c1.largura << endl;
-    cout << "x      : " << c1.x << endl;
-    cout << "y      : " << c1.y << endl;
-    cout << "matriz : " << c1.matriz << endl << endl;
-
-    // Exemplo de leitura do segundo cenário (a partir do índice final de c1) - REMOVER ESTAS SAÍDAS DE TELA NA VERSÃO FINAL
-    Cenario c2(texto, c1.indice_final);
-
-    cout << "nome   : " << c2.nome << endl;
-    cout << "altura : " << c2.altura << endl;
-    cout << "largura: " << c2.largura << endl;
-    cout << "x      : " << c2.x << endl;
-    cout << "y      : " << c2.y << endl;
-    cout << "matriz : " << c2.matriz << endl << endl;
-
-    // OUR CODE / Initializing variables
-    //
-    //
-    //
-    //
-    //
-    //
-    int area;
-    Point robotStart = {(int)c1.x, (int)c1.y};
-
-    const size_t size_matrix0 = c1.matriz.length();
-    char** matrixR;
-    char** matrixE;
-    matrixR = new char*[c1.altura];
-    matrixE = new char*[c1.altura];
-    for (size_t i = 0; i < c1.altura; ++i) {
-        matrixE[i] = new char[c1.largura];
-    }
-    
-    // Primeiro problema: validação de arquivo XML
-    // Verifies if tag is consistent
-    // If not, throws errors and does not continue with its execution
-    // That is the reason why it is declared as void
+    // Primeiro problema:
+    // Verifies if XML tags are correctly nested
     verifyTag(texto);
-    
-    // Initialize matrix to zero
-    resetMatrix(matrixR, c1.altura, c1.largura);
-    
-    // Converts the matrix in string to a matrix in chars an allocate a pointer
-    convertMatrix(c1.matriz, matrixE, c1.altura, c1.largura);
 
-    // Calculates area based on the input matrix
-    area = calculateArea(matrixR, matrixE, c1.altura, c1.largura, robotStart);
+    // Variable responsible for controlling
+    // the reading position inside the XML
+    size_t pos = 0;
 
-    // Prints the area that the robot is responsible for cleaning
-    cout << area << "m²" << endl;
+    // Iterates through all scenarios in the XML
+    while (texto.find("<cenario>", pos) != string::npos) {
 
-    // Deallocate the matrix's pointers
-    destroyMatrix(matrixR, c1.altura, c1.largura);
-    destroyMatrix(matrixE, c1.altura, c1.largura);
+        // Creates current scenario
+        Cenario currentScenario(texto, pos);
+
+        // Updates the reading position
+        pos = currentScenario.indice_final;
+
+        // Stores robot initial position
+        Point robotStart = {
+            (int)currentScenario.x,
+            (int)currentScenario.y
+        };
+
+        // Dynamic allocation of matrices
+        char** matrixR;
+        char** matrixE;
+
+        matrixR = new char*[currentScenario.altura];
+        matrixE = new char*[currentScenario.altura];
+
+        // Allocates rows for matrixE
+        for (size_t i = 0; i < currentScenario.altura; ++i) {
+            matrixE[i] = new char[currentScenario.largura];
+        }
+
+        // Initializes reconstruction matrix with zeros
+        resetMatrix(
+            matrixR,
+            currentScenario.altura,
+            currentScenario.largura
+        );
+
+        // Converts matrix string into bidimensional matrix
+        convertMatrix(
+            currentScenario.matriz,
+            matrixE,
+            currentScenario.altura,
+            currentScenario.largura
+        );
+
+        // Calculates connected component area
+        int area = calculateArea(
+            matrixR,
+            matrixE,
+            currentScenario.altura,
+            currentScenario.largura,
+            robotStart
+        );
+
+        // Prints robot cleaning area
+        cout << currentScenario.nome
+            << " "
+            << area
+            << endl;
+
+        // Deallocates matrices
+        destroyMatrix(
+            matrixR,
+            currentScenario.altura,
+            currentScenario.largura
+        );
+
+        destroyMatrix(
+            matrixE,
+            currentScenario.altura,
+            currentScenario.largura
+        );
+    }
 
     return 0;
 }
